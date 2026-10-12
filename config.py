@@ -29,18 +29,31 @@ DEFAULT_CONFIG = {
 }
 
 def load_config() -> dict:
+    config = DEFAULT_CONFIG.copy()
     if CONFIG_FILE.exists():
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                 saved = json.load(f)
-                config = DEFAULT_CONFIG.copy()
                 config.update(saved)
                 if "risk" in saved:
                     config["risk"] = {**DEFAULT_CONFIG["risk"], **saved["risk"]}
-                return config
         except Exception:
-            return DEFAULT_CONFIG.copy()
-    return DEFAULT_CONFIG.copy()
+            pass
+
+    # Läs från miljövariabler (för molndrift som Render)
+    if os.environ.get("ALPACA_API_KEY"):
+        config["alpaca_api_key"] = os.environ["ALPACA_API_KEY"].strip()
+    if os.environ.get("ALPACA_SECRET_KEY"):
+        config["alpaca_secret_key"] = os.environ["ALPACA_SECRET_KEY"].strip()
+    if os.environ.get("BOT_MODE"):
+        config["mode"] = os.environ["BOT_MODE"].strip().lower()
+        if config["mode"] == "live":
+            config["alpaca_base_url"] = "https://api.alpaca.markets"
+        elif config["mode"] == "paper":
+            config["alpaca_base_url"] = "https://paper-api.alpaca.markets"
+
+    return config
+
 
 def save_config(new_config: dict) -> dict:
     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
