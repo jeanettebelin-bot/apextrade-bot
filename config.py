@@ -17,6 +17,8 @@ DEFAULT_CONFIG = {
     "watchlist": ["AAPL", "MSFT", "NVDA", "TSLA", "SPY", "QQQ", "AMZN"],
     "strategy": "trend_momentum",  # "trend_momentum", "rsi_reversion", "breakout"
     "scan_interval_seconds": 60,
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
     "risk": {
         "max_position_pct": 25.0,       # 25 kr per position vid 100 kr startkapital
         "stop_loss_pct": 2.5,           # Hard exit vid -2.5% (ca -0.62 kr per 25 kr-post)
@@ -45,6 +47,10 @@ def load_config() -> dict:
         config["alpaca_api_key"] = os.environ["ALPACA_API_KEY"].strip()
     if os.environ.get("ALPACA_SECRET_KEY"):
         config["alpaca_secret_key"] = os.environ["ALPACA_SECRET_KEY"].strip()
+    if os.environ.get("TELEGRAM_BOT_TOKEN"):
+        config["telegram_bot_token"] = os.environ["TELEGRAM_BOT_TOKEN"].strip()
+    if os.environ.get("TELEGRAM_CHAT_ID"):
+        config["telegram_chat_id"] = os.environ["TELEGRAM_CHAT_ID"].strip()
     if os.environ.get("BOT_MODE"):
         config["mode"] = os.environ["BOT_MODE"].strip().lower()
         if config["mode"] == "live":

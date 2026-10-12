@@ -598,6 +598,8 @@ async function openSettingsModal() {
 
         document.getElementById("cfg-alpaca-key").value = cfg.alpaca_api_key || "";
         document.getElementById("cfg-alpaca-secret").value = cfg.alpaca_secret_key || "";
+        document.getElementById("cfg-telegram-token").value = cfg.telegram_bot_token || "";
+        document.getElementById("cfg-telegram-chat").value = cfg.telegram_chat_id || "";
 
         const risk = cfg.risk || {};
         document.getElementById("cfg-max-pos").value = risk.max_position_pct || 10;
@@ -622,6 +624,8 @@ async function saveSettings() {
     const selectedMode = document.querySelector('input[name="bot-mode"]:checked').value;
     const apiKey = document.getElementById("cfg-alpaca-key").value.trim();
     const secretKey = document.getElementById("cfg-alpaca-secret").value.trim();
+    const telegramToken = document.getElementById("cfg-telegram-token").value.trim();
+    const telegramChat = document.getElementById("cfg-telegram-chat").value.trim();
 
     const maxPos = parseFloat(document.getElementById("cfg-max-pos").value);
     const stopLoss = parseFloat(document.getElementById("cfg-stop-loss").value);
@@ -637,6 +641,8 @@ async function saveSettings() {
         alpaca_api_key: apiKey,
         alpaca_secret_key: secretKey,
         alpaca_base_url: selectedMode === "live" ? "https://api.alpaca.markets" : "https://paper-api.alpaca.markets",
+        telegram_bot_token: telegramToken,
+        telegram_chat_id: telegramChat,
         scan_interval_seconds: scanInterval,
         watchlist: watchlist,
         risk: {
@@ -694,6 +700,39 @@ async function testAlpacaConnection() {
         } else {
             feedback.className = "test-feedback error";
             feedback.textContent = `✗ Misslyckades: ${data.message}`;
+        }
+    } catch (e) {
+        feedback.className = "test-feedback error";
+        feedback.textContent = "Nätverksfel: " + e;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function testTelegramConnection() {
+    const feedback = document.getElementById("telegram-test-result");
+    const btn = document.getElementById("btn-test-telegram");
+    feedback.style.display = "block";
+    feedback.className = "test-feedback";
+    feedback.textContent = "Skickar testnotis till Telegram...";
+    btn.disabled = true;
+
+    const botToken = document.getElementById("cfg-telegram-token").value.trim();
+    const chatId = document.getElementById("cfg-telegram-chat").value.trim();
+
+    try {
+        const res = await fetch("/api/telegram/test", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bot_token: botToken, chat_id: chatId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            feedback.className = "test-feedback success";
+            feedback.textContent = "✓ " + data.message;
+        } else {
+            feedback.className = "test-feedback error";
+            feedback.textContent = "✗ " + (data.error || "Kunde inte skicka notis");
         }
     } catch (e) {
         feedback.className = "test-feedback error";

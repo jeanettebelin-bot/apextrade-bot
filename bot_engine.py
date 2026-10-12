@@ -9,6 +9,7 @@ from alpaca_client import AlpacaClient
 from market_data import MarketData
 from strategies import get_strategy
 from risk_manager import RiskManager
+from notifications import TelegramNotifier
 
 logger = logging.getLogger("BotEngine")
 
@@ -18,6 +19,7 @@ class BotEngine:
         self.alpaca_client = AlpacaClient(self.config)
         self.market_data = MarketData(self.config)
         self.risk_manager = RiskManager(self.config)
+        self.notifier = TelegramNotifier(self.config)
         
         self.is_running = False
         self._thread: Optional[threading.Thread] = None
@@ -27,6 +29,8 @@ class BotEngine:
         self.last_scan_time: Optional[str] = None
         self.signals_cache: Dict[str, Any] = {}
         self.current_prices: Dict[str, float] = {}
+        self._last_notified_streak = 0
+        self._last_notified_dip = False
 
         self.add_log("INFO", "Tradingbot initierad i " + self.config.get("mode", "simulation").upper() + "-läge")
 
@@ -46,6 +50,7 @@ class BotEngine:
         self.alpaca_client.update_config(self.config)
         self.market_data.config = self.config
         self.risk_manager.config = self.config
+        self.notifier.update_config(self.config)
         self.add_log("INFO", f"Inställningar uppdaterade (Läge: {self.config.get('mode')})")
 
     def start(self):
@@ -112,6 +117,22 @@ class BotEngine:
                 res = self.alpaca_client.close_position(sym, current_price=curr_price)
                 if res.get("success"):
                     self.add_log("SUCCESS", f"Position {sym} stängdes framgångsrikt")
+                    try:
+                        rate = self.alpaca_client.usd_sek_rate
+                        qty = float(pos.get("qty", 1.0))
+                        entry = float(pos.get("entry_price", curr_price))
+                        pl_usd = (curr_price - entry) * qty
+                        cost_usd = entry * qty
+                        pl_pct = (pl_usd / cost_usd * 100) if cost_usd > 0 else 0.0
+                        self.notifier.notify_sell(
+                            symbol=sym,
+                            price_usd=curr_price,
+                            pl_sek=pl_usd * rate,
+                            pl_pct=pl_pct,
+                            reason=reason
+                        )
+                    except Exception as ex:
+                        logger.warning(f"Notification error on sell: {ex}")
                 else:
                     self.add_log("ERROR", f"Misslyckades att stänga {sym}: {res.get('error')}")
 
@@ -134,6 +155,17 @@ class BotEngine:
                         )
                         if order_res.get("success"):
                             self.add_log("SUCCESS", f"Order verkställd: Köpte {shares} {symbol} @ ${curr_price:.2f}")
+                            try:
+                                rate = self.alpaca_client.usd_sek_rate
+                                self.notifier.notify_buy(
+                                    symbol=symbol,
+                                    shares=shares,
+                                    price_usd=curr_price,
+                                    total_sek=shares * curr_price * rate,
+                                    reason=reason
+                                )
+                            except Exception as ex:
+                                logger.warning(f"Notification error on buy: {ex}")
                             # Refresh account & positions for next iteration
                             account = self.alpaca_client.get_account(current_prices=self.current_prices)
                             current_active = self.alpaca_client.get_positions(current_prices=self.current_prices)
@@ -214,6 +246,17 @@ class BotEngine:
             action = "FÖLJ SPARKALENDERN"
             action_type = "normal"
             recommendation = "Marknaden rör sig normalt. Nästa steg: Planera en månatlig insättning på 500 kr vid löning."
+
+        # Send Telegram notification on new state transition
+        if is_market_dip and not self._last_notified_dip:
+            self._last_notified_dip = True
+            self.notifier.notify_dip_alert(oversold_symbols, recommendation)
+        elif not is_market_dip:
+            self._last_notified_dip = False
+
+        if is_winning_streak and consecutive_wins > self._last_notified_streak and consecutive_wins >= 3:
+            self._last_notified_streak = consecutive_wins
+            self.notifier.notify_streak_alert(consecutive_wins, recommendation)
 
         return {
             "equity_sek": equity,

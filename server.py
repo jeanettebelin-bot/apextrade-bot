@@ -25,7 +25,13 @@ class ConfigUpdateRequest(BaseModel):
     watchlist: Optional[List[str]] = None
     strategy: Optional[str] = None
     scan_interval_seconds: Optional[int] = None
+    telegram_bot_token: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
     risk: Optional[Dict[str, Any]] = None
+
+class TelegramTestRequest(BaseModel):
+    bot_token: Optional[str] = None
+    chat_id: Optional[str] = None
 
 class BacktestRequest(BaseModel):
     symbol: str
@@ -185,6 +191,10 @@ def update_config(req: ConfigUpdateRequest):
 @app.post("/api/alpaca/test")
 def test_alpaca_credentials():
     return bot.alpaca_client.test_connection()
+
+@app.post("/api/telegram/test")
+def test_telegram_credentials(req: TelegramTestRequest):
+    return bot.notifier.test_connection(req.bot_token, req.chat_id)
 
 @app.post("/api/simulation/reset")
 def reset_simulation():
