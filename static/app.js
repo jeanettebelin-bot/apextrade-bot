@@ -142,6 +142,35 @@ function renderStatus(data) {
     winRateElem.textContent = `${data.win_rate}%`;
     closedSub.textContent = `${data.total_trades_count} avslutade affärer`;
 
+    // 5. Snöbollsassistenten (Capital & Compounding Advisor)
+    if (data.advisor) {
+        const adv = data.advisor;
+        const badge = document.getElementById("advisor-trigger-badge");
+        const recText = document.getElementById("advisor-rec-text");
+        const msLabel = document.getElementById("advisor-milestone-label");
+        const msPct = document.getElementById("advisor-milestone-pct");
+        const msFill = document.getElementById("advisor-progress-fill");
+        const msSub = document.getElementById("advisor-milestone-sub");
+
+        if (badge) {
+            badge.className = `advisor-trigger-badge ${adv.action_type || 'normal'}`;
+            let icon = "🛡️ ";
+            if (adv.action_type === "dip") icon = "🛒 ";
+            if (adv.action_type === "streak") icon = "🔥 ";
+            badge.textContent = `${icon}${adv.action || 'FÖLJ PLAN'}`;
+        }
+
+        if (recText) recText.textContent = adv.recommendation || "";
+        
+        if (adv.next_milestone && msLabel) {
+            msLabel.textContent = `Mål: ${adv.next_milestone.label || 'Milstolpe'}`;
+        }
+        if (msPct) msPct.textContent = `${adv.progress_pct || 0}%`;
+        if (msFill) msFill.style.width = `${Math.min(100, adv.progress_pct || 0)}%`;
+        if (msSub && adv.next_milestone) {
+            msSub.textContent = `${(adv.equity_sek || 0).toFixed(2)} kr av ${adv.next_milestone.target.toFixed(2)} kr`;
+        }
+    }
 }
 
 function formatStrategyName(name) {

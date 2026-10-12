@@ -147,3 +147,84 @@ class BotEngine:
             "scan_time": self.last_scan_time,
             "analysed_count": len(self.signals_cache)
         }
+
+    def get_capital_advisor(self) -> Dict[str, Any]:
+        account = self.alpaca_client.get_account(current_prices=self.current_prices)
+        equity = account.get("equity_sek", 120.0)
+        closed = self.alpaca_client.get_closed_trades()
+        
+        # 1. Streaks & Flow
+        recent_trades = closed[:5] if len(closed) >= 5 else closed
+        recent_wins = len([t for t in recent_trades if t.get("pl", 0) > 0])
+        consecutive_wins = 0
+        for t in closed:
+            if t.get("pl", 0) > 0:
+                consecutive_wins += 1
+            else:
+                break
+        
+        is_winning_streak = consecutive_wins >= 3 or (len(recent_trades) >= 3 and recent_wins / len(recent_trades) >= 0.7)
+        
+        # 2. Market Dip / Oversold Check
+        oversold_symbols = []
+        if self.signals_cache:
+            for sym, sig in self.signals_cache.items():
+                snap = sig.get("snapshot", {})
+                rsi = snap.get("rsi")
+                if rsi is not None and rsi <= 35:
+                    oversold_symbols.append(sym)
+        is_market_dip = len(oversold_symbols) >= 2 or (len(self.signals_cache) > 0 and len(oversold_symbols) / len(self.signals_cache) >= 0.3)
+        
+        # 3. Milestone progress
+        milestones = [
+            {"target": 120.0, "label": "Start: Verifiering (120 kr)", "phase": 1},
+            {"target": 500.0, "label": "Milstolpe 1: Elddopet (500 kr)", "phase": 1},
+            {"target": 1500.0, "label": "Milstolpe 2: 3 Fulla Innehav (1 500 kr)", "phase": 2},
+            {"target": 5000.0, "label": "Milstolpe 3: Snöbollsacceleration (5 000 kr)", "phase": 3},
+            {"target": 25000.0, "label": "Milstolpe 4: Självgående Maskin (25 000 kr)", "phase": 4},
+            {"target": 100000.0, "label": "Milstolpe 5: Volontär med Kapital (100 000 kr)", "phase": 5},
+        ]
+        
+        current_milestone = milestones[0]
+        next_milestone = milestones[1]
+        for idx, m in enumerate(milestones):
+            if equity >= m["target"]:
+                current_milestone = m
+                if idx + 1 < len(milestones):
+                    next_milestone = milestones[idx + 1]
+                else:
+                    next_milestone = m
+        
+        progress_pct = min(100.0, max(0.0, (equity / next_milestone["target"]) * 100.0)) if next_milestone["target"] > 0 else 100.0
+
+        # 4. Smart Recommendation
+        if is_market_dip:
+            action = "KÖPLÄGE (BÖRSREA)"
+            action_type = "dip"
+            recommendation = f"Översålt läge upptäckt i {', '.join(oversold_symbols) if oversold_symbols else 'marknaden'}! Perfekt läge för en strategisk injektion på 300–500 kr för att rida på nästa studs."
+        elif is_winning_streak:
+            action = "VINST-FLOW AKTIVT"
+            action_type = "streak"
+            recommendation = f"Boten har vunnit {consecutive_wins} affärer i rad! Strategin är i optimal synk med börsen. Rekommenderad boost: +500 kr för att växla upp snöbollen."
+        elif len(closed) < 5:
+            action = "LÅT TESTET RULLA"
+            action_type = "testing"
+            recommendation = f"Fas 1 pågår: {len(closed)}/5 affärer klara. Låt boten samla data innan du pytsar in mer kapital."
+        else:
+            action = "FÖLJ SPARKALENDERN"
+            action_type = "normal"
+            recommendation = "Marknaden rör sig normalt. Nästa steg: Planera en månatlig insättning på 500 kr vid löning."
+
+        return {
+            "equity_sek": equity,
+            "current_milestone": current_milestone,
+            "next_milestone": next_milestone,
+            "progress_pct": round(progress_pct, 1),
+            "is_winning_streak": is_winning_streak,
+            "consecutive_wins": consecutive_wins,
+            "is_market_dip": is_market_dip,
+            "oversold_symbols": oversold_symbols,
+            "action": action,
+            "action_type": action_type,
+            "recommendation": recommendation
+        }

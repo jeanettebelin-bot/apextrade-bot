@@ -60,8 +60,13 @@ def get_status():
         "total_trades_count": len(closed),
         "win_rate": round(win_rate, 1),
         "broker_connected": bot.alpaca_client.is_alpaca_configured(),
-        "clock": bot.alpaca_client.get_clock()
+        "clock": bot.alpaca_client.get_clock(),
+        "advisor": bot.get_capital_advisor()
     }
+
+@app.get("/api/advisor")
+def get_advisor():
+    return bot.get_capital_advisor()
 
 
 @app.post("/api/bot/start")
