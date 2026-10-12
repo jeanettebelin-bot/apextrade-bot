@@ -1,0 +1,20 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Sensitive Configuration & Keys (CRITICAL)
+bot_config.json
+simulation_state.json
+.env
+
+# Logs & temp
+*.log
+scratch/
+.system_generated/

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ApexTrade - Autonom algoritmisk tradingbot och pengamaskin för automatisk handel med aktier">
+    <title>ApexTrade | Autonom Aktiehandelsmaskin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="top-nav" id="top-nav">
+            <div class="brand-group">
+                <div class="brand-logo">
+                    <span class="logo-icon">⚡</span>
+                </div>
+                <div class="brand-text">
+                    <h1 class="brand-title">ApexTrade</h1>
+                    <span class="brand-subtitle">Autonom Algoritmisk Pengamaskin</span>
+                </div>
+            </div>
+
+            <!-- Mode Selector & Live Status Indicator -->
+            <div class="header-center">
+                <div class="status-chip" id="engine-status-chip">
+                    <span class="pulse-dot" id="engine-pulse"></span>
+                    <span id="engine-status-text">INITIERAR...</span>
+                </div>
+                <div class="status-chip" id="market-clock-chip">
+                    <span class="pulse-dot" id="market-clock-dot" style="background: #f43f5e;"></span>
+                    <span id="market-clock-text">Wall Street: Stängd (15:30)</span>
+                </div>
+                <div class="mode-badge" id="mode-badge">
+                    <span class="mode-icon">🛡️</span>
+                    <span id="mode-text">Lokal Profil (100 kr)</span>
+                </div>
+            </div>
+
+
+            <!-- Header Quick Actions -->
+            <div class="header-actions">
+                <button id="btn-toggle-engine" class="btn btn-primary" onclick="toggleEngine()">
+                    <span id="toggle-engine-icon">▶</span>
+                    <span id="toggle-engine-label">Starta Bot</span>
+                </button>
+                <button id="btn-manual-scan" class="btn btn-secondary" onclick="triggerManualScan()">
+                    <span>🔄</span>
+                    <span>Scanna Nu</span>
+                </button>
+                <button id="btn-open-settings" class="btn btn-icon" onclick="openSettingsModal()" title="Inställningar & API-nycklar">
+                    <span>⚙️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- KPI Performance Metrics Row -->
+        <section class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card" id="kpi-equity-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Totalt Portföljvärde</span>
+                    <span class="kpi-icon">💰</span>
+                </div>
+                <div class="kpi-value" id="kpi-equity">100,00 kr</div>
+                <div class="kpi-subtext" id="kpi-cash-sub">Tillgängligt: 100,00 kr</div>
+            </div>
+
+            <div class="kpi-card" id="kpi-pl-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Dagsresultat (P&L)</span>
+                    <span class="kpi-icon" id="kpi-pl-icon">📈</span>
+                </div>
+                <div class="kpi-value positive" id="kpi-day-pl">+0,00 kr</div>
+                <div class="kpi-subtext positive" id="kpi-day-pl-pct">+0.00% idag</div>
+            </div>
+
+            <div class="kpi-card" id="kpi-positions-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Aktiva Innehav</span>
+                    <span class="kpi-icon">📊</span>
+                </div>
+                <div class="kpi-value" id="kpi-positions-count">0 / 3</div>
+                <div class="kpi-subtext" id="kpi-positions-sub">Max 3 positioner (25 kr/st)</div>
+            </div>
+
+            <div class="kpi-card" id="kpi-winrate-card">
+                <div class="kpi-header">
+                    <span class="kpi-title">Historisk Vinstfrekvens</span>
+                    <span class="kpi-icon">🎯</span>
+                </div>
+                <div class="kpi-value highlight-cyan" id="kpi-win-rate">0.0%</div>
+                <div class="kpi-subtext" id="kpi-closed-trades-sub">0 avslutade affärer</div>
+            </div>
+        </section>
+
+        <!-- Main Workspace Tabs -->
+        <nav class="main-tabs" id="main-tabs" aria-label="Main Navigation">
+            <button class="tab-btn active" onclick="switchTab('dashboard')" id="tab-btn-dashboard">
+                <span>⚡ Övervakning & Signaler</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('positions')" id="tab-btn-positions">
+                <span>💼 Portfölj & Innehav (<span id="tab-pos-count">0</span>)</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('backtest')" id="tab-btn-backtest">
+                <span>🧪 Strategi Backtest-Lab</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('orders')" id="tab-btn-orders">
+                <span>📜 Orderhistorik</span>
+            </button>
+        </nav>
+
+        <!-- TAB 1: Dashboard & Live Signals -->
+        <main class="tab-content active" id="tab-dashboard">
+            <div class="dashboard-split">
+                <!-- Left: Watchlist & Signals Board -->
+                <div class="panel watchlist-panel">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <h2 class="panel-title">Bevakningslista & Autonoma Signaler</h2>
+                            <span class="badge" id="active-strategy-badge">Strategi: Trend Momentum</span>
+                        </div>
+                        <div class="panel-actions">
+                            <span class="refresh-indicator" id="last-scanned-text">Senast scannad: -</span>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table" id="watchlist-table">
+                            <thead>
+                                <tr>
+                                    <th>Ticker</th>
+                                    <th>Senaste Pris</th>
+                                    <th>24h Förändring</th>
+                                    <th>RSI (14)</th>
+                                    <th>EMA Trend</th>
+                                    <th>Signal & Konfidens</th>
+                                    <th>Åtgärd</th>
+                                </tr>
+                            </thead>
+                            <tbody id="watchlist-tbody">
+                                <tr>
+                                    <td colspan="7" class="loading-cell">Hämtar marknadsdata...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right: Live Activity Log & Decision Feed -->
+                <div class="panel logs-panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Beslutsterminal & Händelselogg</h2>
+                        <button class="btn btn-sm btn-ghost" onclick="fetchLogs()" title="Uppdatera loggar">
+                            <span>🔄</span>
+                        </button>
+                    </div>
+                    <div class="terminal-container" id="terminal-logs">
+                        <div class="log-line info">
+                            <span class="log-time">00:00:00</span>
+                            <span class="log-tag info">INFO</span>
+                            <span class="log-msg">Initierar systemet...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- TAB 2: Positions & Holdings -->
+        <section class="tab-content" id="tab-positions">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Aktiva Innehav</h2>
+                        <p class="panel-subtitle">Övervakas kontinuerligt mot Stop-Loss och Take-Profit i realtid.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="fetchPositions()">Uppdatera</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="positions-table">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Antal</th>
+                                <th>GAV (Inköp)</th>
+                                <th>Aktuellt Pris</th>
+                                <th>Marknadsvärde</th>
+                                <th>Orealiserat P&L</th>
+                                <th>Stop-Loss Nivå</th>
+                                <th>Take-Profit Mål</th>
+                                <th>Manuell Exit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="positions-tbody">
+                            <tr>
+                                <td colspan="9" class="empty-cell">Inga aktiva innehav just nu.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: Strategy Backtest Lab -->
+        <section class="tab-content" id="tab-backtest">
+            <div class="panel backtest-config-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Backtesting Laboratorium</h2>
+                        <p class="panel-subtitle">Validera hur strategin skulle ha presterat historiskt innan du kör automatiserad handel.</p>
+                    </div>
+                </div>
+                <div class="backtest-form-grid">
+                    <div class="form-group">
+                        <label for="bt-symbol">Aktiesymbol (Ticker)</label>
+                        <input type="text" id="bt-symbol" value="NVDA" class="form-input text-uppercase">
+                    </div>
+                    <div class="form-group">
+                        <label for="bt-strategy">Strategimodell</label>
+                        <select id="bt-strategy" class="form-select">
+                            <option value="trend_momentum">Trend Momentum (EMA9/21 + MACD)</option>
+                            <option value="rsi_reversion">Mean Reversion (RSI &lt; 32 Oversold)</option>
+                            <option value="breakout">Volatilitetsutbrott (Bollinger Upper)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bt-period">Testperiod</label>
+                        <select id="bt-period" class="form-select">
+                            <option value="3mo">3 Månader</option>
+                            <option value="6mo" selected>6 Månader</option>
+                            <option value="1y">1 År</option>
+                            <option value="2y">2 År</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="bt-stop-loss">Stop-Loss (%)</label>
+                        <input type="number" id="bt-stop-loss" value="2.5" step="0.5" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label for="bt-take-profit">Take-Profit (%)</label>
+                        <input type="number" id="bt-take-profit" value="5.0" step="0.5" class="form-input">
+                    </div>
+                    <div class="form-group align-end">
+                        <button class="btn btn-primary btn-block" id="btn-run-backtest" onclick="runBacktest()">
+                            <span>🧪</span>
+                            <span>Kör Backtest</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backtest Results Display -->
+            <div class="backtest-results-container" id="backtest-results" style="display: none;">
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <span class="kpi-title">Strategi Totalavkastning</span>
+                        <div class="kpi-value" id="bt-result-return">+0.0%</div>
+                        <div class="kpi-subtext" id="bt-result-alpha">vs Buy & Hold: +0.0%</div>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Buy & Hold Avkastning</span>
+                        <div class="kpi-value" id="bt-result-bh">+0.0%</div>
+                        <div class="kpi-subtext" id="bt-result-bh-sub">Passivt innehav</div>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Vinstfrekvens (Win Rate)</span>
+                        <div class="kpi-value highlight-cyan" id="bt-result-winrate">0.0%</div>
+                        <div class="kpi-subtext" id="bt-result-trades-count">0 affärer</div>
+                    </div>
+                    <div class="kpi-card">
+                        <span class="kpi-title">Profit Factor & Drawdown</span>
+                        <div class="kpi-value" id="bt-result-pf">0.0</div>
+                        <div class="kpi-subtext negative" id="bt-result-drawdown">Max Drawdown: -0.0%</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-header">
+                        <h3 class="panel-title">Simulerade Affärer under Testperioden</h3>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table" id="bt-trades-table">
+                            <thead>
+                                <tr>
+                                    <th>Köpdatum</th>
+                                    <th>Säljdatum</th>
+                                    <th>Köpkurs</th>
+                                    <th>Säljkurs</th>
+                                    <th>Antal</th>
+                                    <th>P&L ($)</th>
+                                    <th>Avkastning (%)</th>
+                                    <th>Orsak / Exitregel</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bt-trades-tbody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: Order History & Realized Trades -->
+        <section class="tab-content" id="tab-orders">
+            <div class="panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Avslutade Affärer (Realiserat Resultat)</h2>
+                        <p class="panel-subtitle">Historik över alla genomförda säljorder och realiserade vinster/förluster.</p>
+                    </div>
+                    <button class="btn btn-secondary" onclick="fetchOrders()">Uppdatera</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="closed-trades-table">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Antal</th>
+                                <th>Köp (GAV)</th>
+                                <th>Säljpris</th>
+                                <th>Realiserat P&L</th>
+                                <th>Avkastning</th>
+                                <th>Avslutades</th>
+                            </tr>
+                        </thead>
+                        <tbody id="closed-trades-tbody">
+                            <tr>
+                                <td colspan="7" class="empty-cell">Inga realiserade affärer än.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- SETTINGS & RISK CONFIGURATION MODAL -->
+    <div class="modal-overlay" id="settings-modal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2 class="modal-title">⚙️ Riskhantering & Inställningar</h2>
+                <button class="modal-close" onclick="closeSettingsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Mode Choice -->
+                <div class="settings-section">
+                    <h3 class="section-title">Driftläge</h3>
+                    <div class="radio-pill-group">
+                        <label class="radio-pill">
+                            <input type="radio" name="bot-mode" value="simulation" id="mode-radio-sim" checked>
+                            <span class="pill-content">
+                                <strong>Lokal Profil (100 kr)</strong>
+                                <small>Kräver inga API-nycklar, 100,00 kr startkapital</small>
+                            </span>
+                        </label>
+                        <label class="radio-pill">
+                            <input type="radio" name="bot-mode" value="paper" id="mode-radio-paper">
+                            <span class="pill-content">
+                                <strong>Alpaca Paper Trading</strong>
+                                <small>Gratis testkonto med verkliga US-kurser & orderbok</small>
+                            </span>
+                        </label>
+                        <label class="radio-pill">
+                            <input type="radio" name="bot-mode" value="live" id="mode-radio-live">
+                            <span class="pill-content">
+                                <strong>Alpaca Live Trading</strong>
+                                <small>⚠️ Riktiga pengar & skarp mikrohandel</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Alpaca Credentials -->
+                <div class="settings-section">
+                    <div class="section-header-flex">
+                        <h3 class="section-title">Alpaca API-Nycklar</h3>
+                        <button class="btn btn-sm btn-ghost" onclick="testAlpacaConnection()" id="btn-test-alpaca">Testa Anslutning</button>
+                    </div>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="cfg-alpaca-key">Alpaca API Key ID</label>
+                            <input type="text" id="cfg-alpaca-key" placeholder="PK..." class="form-input font-mono">
+                        </div>
+                        <div class="form-group">
+                            <label for="cfg-alpaca-secret">Alpaca Secret Key</label>
+                            <input type="password" id="cfg-alpaca-secret" placeholder="••••••••••••••••" class="form-input font-mono">
+                        </div>
+                    </div>
+                    <div id="alpaca-test-result" class="test-feedback" style="display: none;"></div>
+                </div>
+
+                <!-- Risk Management Rules -->
+                <div class="settings-section">
+                    <h3 class="section-title">Strikta Riskregler (Skyddsnät)</h3>
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label for="cfg-max-pos">Max Allokering per Aktie (%)</label>
+                            <input type="number" id="cfg-max-pos" value="25" step="5" min="5" max="50" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="cfg-stop-loss">Stop-Loss Exit (%)</label>
+                            <input type="number" id="cfg-stop-loss" value="2.5" step="0.5" min="0.5" max="20" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="cfg-take-profit">Take-Profit Mål (%)</label>
+                            <input type="number" id="cfg-take-profit" value="5.0" step="0.5" min="1" max="50" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="cfg-max-positions">Max Samtidiga Innehav</label>
+                            <input type="number" id="cfg-max-positions" value="3" step="1" min="1" max="10" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="cfg-daily-loss">Max Daglig Förlust (Circuit Breaker %)</label>
+                            <input type="number" id="cfg-daily-loss" value="3.0" step="0.5" min="1" max="15" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="cfg-scan-interval">Scanningsintervall (sekunder)</label>
+                            <input type="number" id="cfg-scan-interval" value="60" step="10" min="10" max="600" class="form-input">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watchlist -->
+                <div class="settings-section">
+                    <h3 class="section-title">Aktieurval (Bevakningslista)</h3>
+                    <div class="form-group">
+                        <label for="cfg-watchlist">Kommaseparerade aktiesymboler</label>
+                        <input type="text" id="cfg-watchlist" value="AAPL, MSFT, NVDA, TSLA, SPY, QQQ, AMZN" class="form-input font-mono text-uppercase">
+                    </div>
+                </div>
+
+                <!-- Simulation Tools -->
+                <div class="settings-section">
+                    <h3 class="section-title">Profilverktyg</h3>
+                    <button class="btn btn-danger-ghost btn-sm" onclick="resetSimBalance()">
+                        🔄 Nollställ Saldo till 100,00 kr
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettingsModal()">Avbryt</button>
+                <button class="btn btn-primary" onclick="saveSettings()">Spara & Tillämpa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signal Details Modal -->
+    <div class="modal-overlay" id="signal-modal" style="display: none;">
+        <div class="modal-card modal-sm">
+            <div class="modal-header">
+                <h3 class="modal-title" id="signal-modal-title">Signaldetaljer</h3>
+                <button class="modal-close" onclick="closeSignalModal()">×</button>
+            </div>
+            <div class="modal-body" id="signal-modal-body">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSignalModal()">Stäng</button>
+                <button class="btn btn-primary" id="btn-signal-buy" onclick="executeSignalBuy()">Köp Nu</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
