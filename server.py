@@ -1,3 +1,7 @@
+import os
+import time
+import threading
+import requests
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -15,6 +19,22 @@ STATIC_DIR.mkdir(exist_ok=True)
 
 bot = BotEngine()
 backtester = Backtester(bot.market_data)
+
+# 1. Starta motorn automatiskt direkt vid uppstart/omstart
+bot.start()
+
+# 2. Keep-alive worker för att förhindra att Render Free tier somnar
+def keep_alive_worker():
+    while True:
+        try:
+            time.sleep(600)  # Pinga var 10:e minut
+            render_url = os.environ.get("RENDER_EXTERNAL_URL") or "https://apextrade-bot-qxdv.onrender.com"
+            health_url = f"{render_url.rstrip('/')}/healthz"
+            requests.get(health_url, timeout=10)
+        except Exception:
+            pass
+
+threading.Thread(target=keep_alive_worker, daemon=True).start()
 
 # --- Pydantic Request Models ---
 class ConfigUpdateRequest(BaseModel):
