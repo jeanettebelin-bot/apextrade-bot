@@ -18,8 +18,8 @@ DEFAULT_CONFIG = {
     "strategy": "trend_momentum",  # "trend_momentum", "rsi_reversion", "breakout"
     "scan_interval_seconds": 60,
     "profit_harvest_pct": 10.0,    # 10% av vinsterna reserveras för vinstskörd (90% snöboll)
-    "telegram_bot_token": "8678272166:AAGLQAQhEBlVLS8ziic-fobE7pwy52N8uzY",
-    "telegram_chat_id": "8973204384",
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
     "risk": {
         "max_position_pct": 25.0,       # 25 kr per position vid 100 kr startkapital
         "stop_loss_pct": 2.5,           # Hard exit vid -2.5% (ca -0.62 kr per 25 kr-post)
