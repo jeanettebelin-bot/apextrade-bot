@@ -6,20 +6,20 @@ BASE_DIR = Path(__file__).resolve().parent
 CONFIG_FILE = BASE_DIR / "bot_config.json"
 
 DEFAULT_CONFIG = {
-    "mode": "simulation",  # "simulation", "paper", "live"
+    "mode": "live",        # Live-handel som standard
     "currency": "SEK",     # Basvaluta i svenska kronor
-    "starting_capital_sek": 100.0,
+    "starting_capital_sek": 109.20,
     "usd_sek_rate": 10.50, # Uppdateras dynamiskt mot marknaden
     "alpaca_api_key": "",
     "alpaca_secret_key": "",
-    "alpaca_base_url": "https://paper-api.alpaca.markets",
+    "alpaca_base_url": "https://api.alpaca.markets",
     "alpaca_data_url": "https://data.alpaca.markets/v2",
     "watchlist": ["AAPL", "MSFT", "NVDA", "TSLA", "SPY", "QQQ", "AMZN"],
     "strategy": "trend_momentum",  # "trend_momentum", "rsi_reversion", "breakout"
     "scan_interval_seconds": 60,
     "profit_harvest_pct": 10.0,    # 10% av vinsterna reserveras för vinstskörd (90% snöboll)
-    "telegram_bot_token": "",
-    "telegram_chat_id": "",
+    "telegram_bot_token": "8678272166:AAGLQAQhEBlVLS8ziic-fobE7pwy52N8uzY",
+    "telegram_chat_id": "8973204384",
     "risk": {
         "max_position_pct": 25.0,       # 25 kr per position vid 100 kr startkapital
         "stop_loss_pct": 2.5,           # Hard exit vid -2.5% (ca -0.62 kr per 25 kr-post)
