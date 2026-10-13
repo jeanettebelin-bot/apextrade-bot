@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV PORT=8000
+ENV TZ="Europe/Stockholm"
 
 # Install dependencies
 COPY requirements.txt .

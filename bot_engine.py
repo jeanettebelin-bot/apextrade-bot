@@ -2,7 +2,10 @@ import time
 import threading
 import logging
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Any, Optional
+
+SWEDISH_TZ = ZoneInfo("Europe/Stockholm")
 
 from config import load_config, save_config
 from alpaca_client import AlpacaClient
@@ -36,7 +39,7 @@ class BotEngine:
 
     def add_log(self, level: str, message: str):
         record = {
-            "time": datetime.now().strftime("%H:%M:%S"),
+            "time": datetime.now(SWEDISH_TZ).strftime("%H:%M:%S"),
             "level": level,
             "message": message
         }
@@ -80,7 +83,7 @@ class BotEngine:
             self._stop_event.wait(timeout=interval)
 
     def scan_once(self) -> dict:
-        self.last_scan_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.last_scan_time = datetime.now(SWEDISH_TZ).strftime("%Y-%m-%d %H:%M:%S")
         self.add_log("INFO", "Initierar marknadsscanning...")
 
         watchlist = self.config.get("watchlist", [])

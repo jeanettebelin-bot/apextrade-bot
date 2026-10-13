@@ -2,8 +2,11 @@ import json
 import logging
 from pathlib import Path
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Dict, List, Optional, Any
 import requests
+
+SWEDISH_TZ = ZoneInfo("Europe/Stockholm")
 
 logger = logging.getLogger("AlpacaClient")
 
@@ -110,7 +113,7 @@ class AlpacaClient:
                     }
             except Exception:
                 pass
-        now = datetime.now()
+        now = datetime.now(SWEDISH_TZ)
         weekday = now.weekday()
         is_weekday = weekday < 5
         is_hours = (now.hour == 15 and now.minute >= 30) or (16 <= now.hour < 22)
