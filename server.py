@@ -27,6 +27,7 @@ class ConfigUpdateRequest(BaseModel):
     scan_interval_seconds: Optional[int] = None
     telegram_bot_token: Optional[str] = None
     telegram_chat_id: Optional[str] = None
+    profit_harvest_pct: Optional[float] = None
     risk: Optional[Dict[str, Any]] = None
 
 class TelegramTestRequest(BaseModel):

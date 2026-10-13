@@ -170,6 +170,11 @@ function renderStatus(data) {
         if (msSub && adv.next_milestone) {
             msSub.textContent = `${(adv.equity_sek || 0).toFixed(2)} kr av ${adv.next_milestone.target.toFixed(2)} kr`;
         }
+
+        const harvestVal = document.getElementById("advisor-harvest-val");
+        const snowballVal = document.getElementById("advisor-snowball-val");
+        if (harvestVal) harvestVal.textContent = `${(adv.harvest_vault_sek || 0).toFixed(2)} kr`;
+        if (snowballVal) snowballVal.textContent = `${(adv.snowball_vault_sek || 0).toFixed(2)} kr`;
     }
 }
 

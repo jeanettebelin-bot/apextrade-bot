@@ -258,6 +258,11 @@ class BotEngine:
             self._last_notified_streak = consecutive_wins
             self.notifier.notify_streak_alert(consecutive_wins, recommendation)
 
+        total_profit_sek = sum([float(t.get("pl", 0.0)) for t in closed if float(t.get("pl", 0.0)) > 0])
+        harvest_pct = float(self.config.get("profit_harvest_pct", 10.0))
+        harvest_vault_sek = total_profit_sek * (harvest_pct / 100.0)
+        snowball_vault_sek = total_profit_sek * ((100.0 - harvest_pct) / 100.0)
+
         return {
             "equity_sek": equity,
             "current_milestone": current_milestone,
@@ -269,5 +274,10 @@ class BotEngine:
             "oversold_symbols": oversold_symbols,
             "action": action,
             "action_type": action_type,
-            "recommendation": recommendation
+            "recommendation": recommendation,
+            "total_profit_sek": round(total_profit_sek, 2),
+            "harvest_pct": harvest_pct,
+            "snowball_pct": 100.0 - harvest_pct,
+            "harvest_vault_sek": round(harvest_vault_sek, 2),
+            "snowball_vault_sek": round(snowball_vault_sek, 2)
         }

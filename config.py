@@ -17,6 +17,7 @@ DEFAULT_CONFIG = {
     "watchlist": ["AAPL", "MSFT", "NVDA", "TSLA", "SPY", "QQQ", "AMZN"],
     "strategy": "trend_momentum",  # "trend_momentum", "rsi_reversion", "breakout"
     "scan_interval_seconds": 60,
+    "profit_harvest_pct": 10.0,    # 10% av vinsterna reserveras för vinstskörd (90% snöboll)
     "telegram_bot_token": "",
     "telegram_chat_id": "",
     "risk": {
