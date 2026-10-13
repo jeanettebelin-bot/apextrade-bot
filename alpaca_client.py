@@ -134,10 +134,12 @@ class AlpacaClient:
                     data = r.json()
                     equity_usd = float(data.get("equity", 0.0))
                     cash_usd = float(data.get("cash", 0.0))
+                    buying_power_usd = float(data.get("buying_power", cash_usd))
                     last_equity_usd = float(data.get("last_equity", equity_usd))
                     
                     equity_sek = equity_usd * usd_sek_rate
                     cash_sek = cash_usd * usd_sek_rate
+                    buying_power_sek = buying_power_usd * usd_sek_rate
                     last_equity_sek = last_equity_usd * usd_sek_rate
                     day_pl_sek = equity_sek - last_equity_sek
                     day_pl_pct = (day_pl_sek / last_equity_sek * 100) if last_equity_sek > 0 else 0.0
@@ -149,7 +151,7 @@ class AlpacaClient:
                         "equity": round(equity_sek, 2),
                         "cash_usd": round(cash_usd, 2),
                         "equity_usd": round(equity_usd, 2),
-                        "buying_power": round(cash_sek, 2),
+                        "buying_power": round(buying_power_sek, 2),
                         "day_pl": round(day_pl_sek, 2),
                         "day_pl_pct": round(day_pl_pct, 2),
                         "initial_equity": round(last_equity_sek, 2),
@@ -158,6 +160,17 @@ class AlpacaClient:
                     }
             except Exception as e:
                 logger.error(f"Failed to fetch Alpaca account, falling back to sim: {e}")
+
+    def get_open_orders(self) -> List[dict]:
+        if self.mode != "simulation" and self.is_alpaca_configured():
+            try:
+                url = f"{self.base_url}/v2/orders?status=open"
+                r = requests.get(url, headers=self._headers(), timeout=5)
+                if r.status_code == 200:
+                    return r.json()
+            except Exception as e:
+                logger.error(f"Failed to fetch open orders: {e}")
+        return []
 
         # Simulation Mode
         sim = self._sim_state

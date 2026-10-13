@@ -36,6 +36,10 @@ class RiskManager:
         # 3. Position Sizing
         max_pos_pct = risk.get("max_position_pct", 25.0) / 100.0
         target_allocation_sek = equity * max_pos_pct
+        buying_power = account.get("buying_power", cash)
+
+        if buying_power < 5.0:
+            return False, f"All tillgänglig köpkraft är redan allokerad i ordrar ({buying_power:.2f} kr)", 0.0
 
         if cash < target_allocation_sek * 0.95:
             target_allocation_sek = cash * 0.95  # Använd tillgängliga likvider

@@ -140,8 +140,17 @@ class BotEngine:
         if self.is_running:
             account = self.alpaca_client.get_account(current_prices=self.current_prices)
             current_active = self.alpaca_client.get_positions(current_prices=self.current_prices)
+            open_orders = self.alpaca_client.get_open_orders()
+            pending_symbols = [o.get("symbol", "").upper() for o in open_orders]
+            max_pos = self.config.get("risk", {}).get("max_open_positions", 3)
 
             for symbol, analysis in self.signals_cache.items():
+                if symbol.upper() in pending_symbols:
+                    continue
+
+                if len(current_active) + len(open_orders) >= max_pos:
+                    continue
+
                 if analysis["signal"] == "BUY" and analysis["confidence"] >= 65:
                     curr_price = analysis["snapshot"]["price"]
                     approved, reason, shares = self.risk_manager.evaluate_buy_order(
@@ -182,7 +191,7 @@ class BotEngine:
 
     def get_capital_advisor(self) -> Dict[str, Any]:
         account = self.alpaca_client.get_account(current_prices=self.current_prices)
-        equity = account.get("equity_sek", 120.0)
+        equity = account.get("equity", 109.20)
         closed = self.alpaca_client.get_closed_trades()
         
         # 1. Streaks & Flow
