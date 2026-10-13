@@ -1,7 +1,5 @@
+import os
 import uvicorn
-import sys
-from pathlib import Path
-
 import sys
 from pathlib import Path
 
@@ -14,9 +12,11 @@ if sys.platform == "win32":
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    host = "0.0.0.0"
     print("\n" + "="*60)
     print("  [*] ApexTrade - Autonom Aktiehandelsmaskin")
-    print("  [>] Dashboard tillganglig pa: http://localhost:8000")
+    print(f"  [>] Dashboard tillganglig pa port {port}")
     print("="*60 + "\n")
-    uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=False, log_level="info")
+    uvicorn.run("server:app", host=host, port=port, reload=False, log_level="info")
 
