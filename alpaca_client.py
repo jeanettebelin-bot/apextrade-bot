@@ -164,18 +164,7 @@ class AlpacaClient:
             except Exception as e:
                 logger.error(f"Failed to fetch Alpaca account, falling back to sim: {e}")
 
-    def get_open_orders(self) -> List[dict]:
-        if self.mode != "simulation" and self.is_alpaca_configured():
-            try:
-                url = f"{self.base_url}/v2/orders?status=open"
-                r = requests.get(url, headers=self._headers(), timeout=5)
-                if r.status_code == 200:
-                    return r.json()
-            except Exception as e:
-                logger.error(f"Failed to fetch open orders: {e}")
-        return []
-
-        # Simulation Mode
+        # Simulation Mode / Fallback
         sim = self._sim_state
         current_prices = current_prices or {}
         pos_value_sek = 0.0
@@ -202,6 +191,17 @@ class AlpacaClient:
             "connected_to_broker": False,
             "usd_sek_rate": usd_sek_rate
         }
+
+    def get_open_orders(self) -> List[dict]:
+        if self.mode != "simulation" and self.is_alpaca_configured():
+            try:
+                url = f"{self.base_url}/v2/orders?status=open"
+                r = requests.get(url, headers=self._headers(), timeout=5)
+                if r.status_code == 200:
+                    return r.json()
+            except Exception as e:
+                logger.error(f"Failed to fetch open orders: {e}")
+        return []
 
     # --- Positions ---
     def get_positions(self, current_prices: Optional[Dict[str, float]] = None) -> List[dict]:
