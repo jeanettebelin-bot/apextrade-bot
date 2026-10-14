@@ -85,6 +85,7 @@ def get_status():
             "account": account,
             "positions": positions,
             "position_count": len(positions),
+            "max_positions": bot.config.get("risk", {}).get("max_open_positions", 7),
             "total_trades_count": len(closed),
             "win_rate": round(win_rate, 1),
             "broker_connected": bot.alpaca_client.is_alpaca_configured(),
@@ -102,6 +103,7 @@ def get_status():
             "account": {"mode": "live", "cash": 109.20, "equity": 109.20, "status": "ACTIVE", "currency": "SEK", "connected_to_broker": True},
             "positions": [],
             "position_count": 0,
+            "max_positions": bot.config.get("risk", {}).get("max_open_positions", 7),
             "total_trades_count": 0,
             "win_rate": 0.0,
             "broker_connected": True,
@@ -111,6 +113,16 @@ def get_status():
 @app.get("/api/advisor")
 def get_advisor():
     return bot.get_capital_advisor()
+
+@app.get("/api/market-report")
+def get_market_report():
+    return bot.get_daily_market_report()
+
+@app.post("/api/market-report/send-telegram")
+def send_market_report_telegram():
+    report = bot.get_daily_market_report()
+    bot.notifier.notify_daily_recap(report)
+    return {"success": True, "message": "Kvällsrapporten har skickats till Telegram!"}
 
 
 @app.post("/api/bot/start")

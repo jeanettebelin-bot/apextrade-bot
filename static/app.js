@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchLogs();
     fetchPositions();
     fetchOrders();
+    fetchMarketReport();
 
     // Start live polling every 3.5 seconds
     pollInterval = setInterval(() => {
@@ -18,10 +19,14 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchLogs(true);
     }, 3500);
 
-    // Watchlist refreshes slightly less frequently
+    // Watchlist & Market Report refresh
     setInterval(() => {
         fetchWatchlist(true);
     }, 8000);
+
+    setInterval(() => {
+        fetchMarketReport();
+    }, 25000);
 });
 
 // --- Tab Switching ---
@@ -134,9 +139,13 @@ function renderStatus(data) {
     dayPlElem.textContent = (isPositive ? "+" : "-") + Math.abs(dayPl).toFixed(2) + " kr";
 
     dayPlPctElem.className = `kpi-subtext ${isPositive ? 'positive' : 'negative'}`;
-    dayPlPctElem.textContent = `${isPositive ? '+' : ''}${dayPlPct.toFixed(2)}% idag`;
-
-    posCountElem.textContent = `${data.position_count} / 3`;
+    const maxPos = data.max_positions || 7;
+    posCountElem.textContent = `${data.position_count} / ${maxPos}`;
+    const posSub = document.getElementById("kpi-positions-sub");
+    if (posSub) {
+        const approxPerTrade = Math.round(equity / maxPos);
+        posSub.textContent = `Max ${maxPos} positioner (~${approxPerTrade} kr/st)`;
+    }
     if (tabPosCount) tabPosCount.textContent = data.position_count;
 
     winRateElem.textContent = `${data.win_rate}%`;
@@ -765,3 +774,112 @@ async function resetSimBalance() {
         alert("Fel vid återställning: " + e);
     }
 }
+
+// --- Market Report & Relative Alpha Benchmark ---
+async function fetchMarketReport() {
+    try {
+        const res = await fetch("/api/market-report");
+        if (!res.ok) return;
+        const data = await res.json();
+        renderMarketReport(data);
+    } catch (e) {
+        console.error("Error fetching market report:", e);
+    }
+}
+
+function renderMarketReport(data) {
+    if (!data) return;
+
+    // Session & Date
+    const sessionElem = document.getElementById("report-session-label");
+    const dateElem = document.getElementById("report-date-badge");
+    if (sessionElem) sessionElem.textContent = data.session_label || "Stängningsfacit";
+    if (dateElem) dateElem.textContent = `${data.date} (${data.time || ''})`;
+
+    // Market Box
+    const mktAvg = document.getElementById("report-market-avg");
+    const spyVal = document.getElementById("report-spy-val");
+    const qqqVal = document.getElementById("report-qqq-val");
+    if (mktAvg) {
+        const val = data.market_avg || 0;
+        mktAvg.className = `report-box-main ${val >= 0 ? 'positive' : 'negative'}`;
+        mktAvg.textContent = `${val >= 0 ? '+' : ''}${val.toFixed(2)}%`;
+    }
+    if (spyVal && data.spy) {
+        const s = data.spy.change_pct || 0;
+        spyVal.textContent = `${s >= 0 ? '+' : ''}${s.toFixed(2)}%`;
+        spyVal.style.color = s >= 0 ? "#10b981" : "#f43f5e";
+    }
+    if (qqqVal && data.qqq) {
+        const q = data.qqq.change_pct || 0;
+        qqqVal.textContent = `${q >= 0 ? '+' : ''}${q.toFixed(2)}%`;
+        qqqVal.style.color = q >= 0 ? "#10b981" : "#f43f5e";
+    }
+
+    // Portfolio Box
+    const portPl = document.getElementById("report-port-pl");
+    const portPct = document.getElementById("report-port-pct");
+    const highlightsSub = document.getElementById("report-highlights-sub");
+    if (portPl) {
+        const pl = data.portfolio_day_pl_sek || 0;
+        portPl.className = `report-box-main ${pl >= 0 ? 'positive' : 'negative'}`;
+        portPl.textContent = `${pl >= 0 ? '+' : '-'}${Math.abs(pl).toFixed(2)} kr`;
+    }
+    if (portPct) {
+        const pct = data.portfolio_day_pl_pct || 0;
+        portPct.className = pct >= 0 ? 'positive' : 'negative';
+        portPct.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% idag`;
+    }
+    if (highlightsSub) {
+        if (data.top_gainer && data.top_gainer.symbol) {
+            const g = data.top_gainer;
+            highlightsSub.textContent = `🌟 Dagens raket: ${g.symbol} (${g.pl_pct >= 0 ? '+' : ''}${g.pl_pct}%)`;
+        } else {
+            highlightsSub.textContent = "🌟 Innehav förvaltas autonomt";
+        }
+    }
+
+    // Alpha Box
+    const alphaBadge = document.getElementById("report-alpha-badge");
+    const alphaSub = document.getElementById("report-alpha-sub");
+    if (alphaBadge) {
+        alphaBadge.className = `alpha-badge ${data.badge_type || 'alpha-neutral'}`;
+        alphaBadge.textContent = data.badge_text || "±0.00% mot index";
+    }
+    if (alphaSub) {
+        alphaSub.textContent = data.badge_title || "Relativ prestationsanalys";
+    }
+
+    // Analysis Quote
+    const analysisTitle = document.getElementById("report-analysis-title");
+    const analysisText = document.getElementById("report-analysis-text");
+    if (analysisTitle) analysisTitle.textContent = data.analysis_title || "";
+    if (analysisText) analysisText.textContent = data.analysis_text || "";
+}
+
+async function sendReportToTelegram() {
+    const btn = document.getElementById("btn-send-report-telegram");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.innerHTML = "<span>⏳ Skickar...</span>";
+    try {
+        const res = await fetch("/api/market-report/send-telegram", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            btn.innerHTML = "<span>✅ Skickat!</span>";
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = "<span>📱 Skicka till Telegram</span>";
+            }, 3000);
+        } else {
+            alert("Kunde inte skicka: " + (data.error || "Okänt fel"));
+            btn.disabled = false;
+            btn.innerHTML = "<span>📱 Skicka till Telegram</span>";
+        }
+    } catch (e) {
+        alert("Nätverksfel vid sändning till Telegram.");
+        btn.disabled = false;
+        btn.innerHTML = "<span>📱 Skicka till Telegram</span>";
+    }
+}
+

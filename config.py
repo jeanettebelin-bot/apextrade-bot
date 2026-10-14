@@ -25,7 +25,7 @@ DEFAULT_CONFIG = {
         "stop_loss_pct": 2.5,           # Hard exit vid -2.5% (ca -0.62 kr per 25 kr-post)
         "take_profit_pct": 5.0,         # Vinstmål vid +5.0% (ca +1.25 kr per 25 kr-post)
         "trailing_stop_pct": 1.5,       # Trailing stop
-        "max_open_positions": 3,        # Max 3 poster samtidigt (t.ex. 3x 25 kr = 75 kr investerat, 25 kr i reserv)
+        "max_open_positions": 7,        # Max 7 poster samtidigt (hela bevakningslistan)
         "max_daily_loss_pct": 3.0,      # Circuit breaker: pausa om dagsförlusten når -3.00 kr
         "allow_fractional": True        # Fraktionshandel krävs för mikrobelopp
     }

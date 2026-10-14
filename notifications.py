@@ -118,3 +118,38 @@ class TelegramNotifier:
             f"⚡ <i>Momentum-strategin presterar optimalt i nuvarande marknadsklimat.</i>"
         )
         self.send_message(msg)
+
+    def notify_daily_recap(self, report: dict):
+        spy_pct = report.get("spy", {}).get("change_pct", 0.0)
+        qqq_pct = report.get("qqq", {}).get("change_pct", 0.0)
+        mkt_avg = report.get("market_avg", 0.0)
+        pl_sek = report.get("portfolio_day_pl_sek", 0.0)
+        pl_pct = report.get("portfolio_day_pl_pct", 0.0)
+        alpha = report.get("alpha", 0.0)
+        badge = report.get("badge_text", "")
+        title = report.get("analysis_title", "Dagsrapport")
+        text = report.get("analysis_text", "")
+        date_str = report.get("date", "")
+        session_label = report.get("session_label", "Börsbokslut")
+
+        pl_str = f"+{pl_sek:.2f} kr (+{pl_pct:.2f}%)" if pl_sek >= 0 else f"{pl_sek:.2f} kr ({pl_pct:.2f}%)"
+        mkt_str = f"S&P 500: {spy_pct:+.2f}% | Nasdaq: {qqq_pct:+.2f}%"
+
+        gainer_str = ""
+        if report.get("top_gainer"):
+            tg = report["top_gainer"]
+            gainer_str = f"🌟 <b>Dagens Raket:</b> {tg['symbol']} ({tg['pl_pct']:+.2f}%)\n"
+
+        msg = (
+            f"📊 <b>DAGLIG BÖRSBOKSLUT & ALFA-ANALYS</b> ({date_str})\n"
+            f"<i>{session_label}</i>\n\n"
+            f"💰 <b>Portföljresultat idag:</b> <code>{pl_str}</code>\n"
+            f"🌐 <b>Wall Street:</b> {mkt_str} (Snitt: {mkt_avg:+.2f}%)\n"
+            f"🎯 <b>Relativ Prestation (Alfa):</b> <b>{badge}</b>\n\n"
+            f"{gainer_str}"
+            f"<b>{title}</b>\n"
+            f"{text}\n\n"
+            f"👉 <a href=\"https://apextrade-bot-qxdv.onrender.com\">Öppna Kontrollpanelen</a>"
+        )
+        self.send_message(msg)
+

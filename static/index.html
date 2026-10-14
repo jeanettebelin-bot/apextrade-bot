@@ -82,8 +82,8 @@
                     <span class="kpi-title">Aktiva Innehav</span>
                     <span class="kpi-icon">📊</span>
                 </div>
-                <div class="kpi-value" id="kpi-positions-count">0 / 3</div>
-                <div class="kpi-subtext" id="kpi-positions-sub">Max 3 positioner (25 kr/st)</div>
+                <div class="kpi-value" id="kpi-positions-count">0 / 7</div>
+                <div class="kpi-subtext" id="kpi-positions-sub">Max 7 positioner</div>
             </div>
 
             <div class="kpi-card" id="kpi-winrate-card">
@@ -120,6 +120,65 @@
                     <div class="advisor-progress-bar-fill" id="advisor-progress-fill" style="width: 24.0%;"></div>
                 </div>
                 <div class="advisor-milestone-sub" id="advisor-milestone-sub">120,00 kr av 500,00 kr</div>
+            </div>
+        </section>
+
+        <!-- Daily Market Report & Relative Alpha Benchmark -->
+        <section class="market-report-card" id="market-report-card">
+            <div class="market-report-header">
+                <div class="market-report-title-group">
+                    <span class="report-icon">📊</span>
+                    <div>
+                        <h2 class="report-title">Dagens Börsrapport & Alfa-Analys</h2>
+                        <span class="report-subtitle" id="report-session-label">Börsen Stängd (Stängningsfacit)</span>
+                    </div>
+                </div>
+                <div class="report-header-actions">
+                    <button class="btn btn-sm btn-ghost" id="btn-send-report-telegram" onclick="sendReportToTelegram()" title="Skicka rapporten direkt till Telegram">
+                        <span>📱 Skicka till Telegram</span>
+                    </button>
+                    <span class="report-date-badge" id="report-date-badge">Dagens Datum</span>
+                </div>
+            </div>
+
+            <div class="market-report-grid">
+                <!-- Box 1: Börsen (Wall Street Benchmark) -->
+                <div class="report-box" id="report-box-market">
+                    <div class="report-box-label">Börsen (Wall Street Index)</div>
+                    <div class="report-box-main" id="report-market-avg">0.00%</div>
+                    <div class="report-box-sub" id="report-market-sub">
+                        <span>SPY (S&P 500): <strong id="report-spy-val">0.00%</strong></span>
+                        <span>QQQ (Nasdaq): <strong id="report-qqq-val">0.00%</strong></span>
+                    </div>
+                </div>
+
+                <!-- Box 2: Portföljen (ApexTrade) -->
+                <div class="report-box" id="report-box-portfolio">
+                    <div class="report-box-label">ApexTrade Portfölj (Idag)</div>
+                    <div class="report-box-main" id="report-port-pl">+0,00 kr</div>
+                    <div class="report-box-sub">
+                        <span id="report-port-pct">+0.00% idag</span>
+                        <span id="report-highlights-sub">🌟 Dagens stjärna: -</span>
+                    </div>
+                </div>
+
+                <!-- Box 3: Relativ Prestation (Alfa) -->
+                <div class="report-box highlight-alpha" id="report-box-alpha">
+                    <div class="report-box-label">Relativ Prestation (Alfa vs Index)</div>
+                    <div class="report-box-badge-wrap">
+                        <span class="alpha-badge alpha-neutral" id="report-alpha-badge">±0.00% mot index</span>
+                    </div>
+                    <div class="report-box-sub" id="report-alpha-sub">Skiljer marknadens motvind från botens skicklighet</div>
+                </div>
+            </div>
+
+            <!-- Contextual Synthesis Box -->
+            <div class="report-analysis-quote" id="report-analysis-container">
+                <div class="analysis-quote-icon">💡</div>
+                <div class="analysis-quote-content">
+                    <div class="analysis-quote-title" id="report-analysis-title">Analys sammanställs...</div>
+                    <div class="analysis-quote-text" id="report-analysis-text">Hämtar dagens marknadsdata och utvärderar relativ prestation...</div>
+                </div>
             </div>
         </section>
 

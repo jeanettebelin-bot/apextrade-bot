@@ -932,3 +932,190 @@ label {
         min-width: 100%;
     }
 }
+
+/* DAILY MARKET REPORT & ALPHA BENCHMARK */
+.market-report-card {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    backdrop-filter: blur(12px);
+}
+
+.market-report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 14px;
+}
+
+.market-report-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.report-icon {
+    font-size: 24px;
+    background: rgba(6, 182, 212, 0.15);
+    padding: 6px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.report-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.report-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.report-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.report-date-badge {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.market-report-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 900px) {
+    .market-report-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.report-box {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.report-box.highlight-alpha {
+    border-color: rgba(6, 182, 212, 0.3);
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.05) 0%, rgba(15, 23, 42, 0.8) 100%);
+}
+
+.report-box-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.report-box-main {
+    font-size: 22px;
+    font-weight: 800;
+    font-family: var(--font-mono);
+    color: var(--text-main);
+}
+
+.report-box-badge-wrap {
+    margin: 4px 0;
+}
+
+.alpha-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.alpha-badge.alpha-positive {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.alpha-badge.alpha-negative {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fb7185;
+    border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.alpha-badge.alpha-neutral {
+    background: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.report-box-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.report-box-sub span strong {
+    color: var(--text-main);
+    font-family: var(--font-mono);
+}
+
+.report-analysis-quote {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: rgba(6, 182, 212, 0.06);
+    border-left: 3px solid #06b6d4;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    padding: 14px 18px;
+}
+
+.analysis-quote-icon {
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+.analysis-quote-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.analysis-quote-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+.analysis-quote-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-main);
+}
+

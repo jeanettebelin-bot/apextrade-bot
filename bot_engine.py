@@ -293,3 +293,138 @@ class BotEngine:
             "harvest_vault_sek": round(harvest_vault_sek, 2),
             "snowball_vault_sek": round(snowball_vault_sek, 2)
         }
+
+    def get_daily_market_report(self) -> dict:
+        try:
+            # 1. Benchmark: SPY (S&P 500) & QQQ (Nasdaq 100)
+            spy_snap = self.market_data.get_analysis_snapshot("SPY")
+            qqq_snap = self.market_data.get_analysis_snapshot("QQQ")
+
+            spy_pct = spy_snap["change_pct"] if spy_snap else 0.0
+            qqq_pct = qqq_snap["change_pct"] if qqq_snap else 0.0
+            spy_price = spy_snap["price"] if spy_snap else 0.0
+            qqq_price = qqq_snap["price"] if qqq_snap else 0.0
+            market_avg = round((spy_pct + qqq_pct) / 2.0, 2)
+
+            # 2. Portfolio Performance
+            account = self.alpaca_client.get_account(current_prices=self.current_prices)
+            port_pl_sek = account.get("day_pl", 0.0)
+            port_pl_pct = account.get("day_pl_pct", 0.0)
+            equity_sek = account.get("equity", 0.0)
+
+            # 3. Relative Performance (Alfa)
+            alpha = round(port_pl_pct - market_avg, 2)
+
+            # 4. Gainer / Loser analysis
+            positions = self.alpaca_client.get_positions(current_prices=self.current_prices)
+            top_gainer = None
+            top_loser = None
+
+            if positions:
+                sorted_pos = sorted(positions, key=lambda p: p.get("unrealized_pl_pct", 0.0), reverse=True)
+                top_gainer = {
+                    "symbol": sorted_pos[0]["symbol"],
+                    "pl_pct": round(sorted_pos[0].get("unrealized_pl_pct", 0.0), 2),
+                    "pl_sek": round(sorted_pos[0].get("unrealized_pl_sek", 0.0), 2)
+                }
+                top_loser = {
+                    "symbol": sorted_pos[-1]["symbol"],
+                    "pl_pct": round(sorted_pos[-1].get("unrealized_pl_pct", 0.0), 2),
+                    "pl_sek": round(sorted_pos[-1].get("unrealized_pl_sek", 0.0), 2)
+                }
+
+            # 5. Market Session Status
+            clock = self.alpaca_client.get_clock()
+            is_market_closed = not clock.get("is_open", False)
+
+            # 6. Evaluation Badges & Text (Alfa vs Beta / Headwind vs Tailwind)
+            if alpha >= 0.20:
+                badge_type = "alpha-positive"
+                badge_text = f"+{alpha:.2f}% mot index 🏆"
+                badge_title = "ÖVERPRESTERAR MARKNADEN (ALFA)"
+            elif alpha <= -0.20:
+                badge_type = "alpha-negative"
+                badge_text = f"{alpha:.2f}% mot index 📉"
+                badge_title = "UNDERPRESTERAR MARKNADEN"
+            else:
+                badge_type = "alpha-neutral"
+                badge_text = f"±0.00% mot index ⚖️"
+                badge_title = "FÖLJER MARKNADEN (NEUTRAL)"
+
+            # Deep Analysis Explanation
+            if market_avg <= -0.30:
+                if alpha > 0:
+                    analysis_title = "🛡️ Stark defensiv insats i motvind"
+                    analysis_text = (
+                        f"Wall Street hade en röd session där marknadsindex backade i snitt {market_avg:+.2f}% "
+                        f"(S&P 500: {spy_pct:+.2f}%, Nasdaq: {qqq_pct:+.2f}%). ApexTrade stod emot säljtrycket mycket starkt "
+                        f"och slog börsen med +{alpha:.2f}%. Det dämpade resultatet beror helt på allmän marknadsmotvind – "
+                        f"botens riskhantering och riskspridning har framgångsrikt skyddat kapitalet."
+                    )
+                else:
+                    analysis_title = "🌧️ Brett säljtryck på Wall Street"
+                    analysis_text = (
+                        f"Hela USA-börsen föll brett idag (snitt {market_avg:+.2f}%). Boten kämpar i tung motvind, "
+                        f"men automatiska stop-loss nivåer ligger redo för att begränsa eventuella djupare nedsidor."
+                    )
+            elif market_avg >= 0.30:
+                if alpha >= 0:
+                    analysis_title = "🚀 Stark medvind & överavkastning"
+                    analysis_text = (
+                        f"Stark börsdag på Wall Street med grön session (snitt {market_avg:+.2f}%). Boten hänger på "
+                        f"och genererar positiv alfa (+{alpha:.2f}%) genom sina aktiva momentum-innehav."
+                    )
+                else:
+                    analysis_title = "📈 Marknaden drog ifrån"
+                    analysis_text = (
+                        f"Wall Street steg i snitt {market_avg:+.2f}%. Botens positioner rörde sig mer selektivt och "
+                        f"avvaktar ytterligare bekräftade köpsignaler."
+                    )
+            else:
+                analysis_title = "⚖️ Neutral och konsoliderande marknad"
+                analysis_text = (
+                    f"Börsen rörde sig i sidled idag (snitt {market_avg:+.2f}%). Inga dramatiska makrorörelser. "
+                    f"Boten håller kursen och inväntar nästa trendskifte med bevarat kapital."
+                )
+
+            return {
+                "date": datetime.now(SWEDISH_TZ).strftime("%Y-%m-%d"),
+                "time": datetime.now(SWEDISH_TZ).strftime("%H:%M"),
+                "market_closed": is_market_closed,
+                "session_label": "Börsen Stängd (Stängningsfacit)" if is_market_closed else "Börsen Öppen (Live-session)",
+                "spy": {"symbol": "SPY", "name": "S&P 500", "price": spy_price, "change_pct": spy_pct},
+                "qqq": {"symbol": "QQQ", "name": "Nasdaq 100", "price": qqq_price, "change_pct": qqq_pct},
+                "market_avg": market_avg,
+                "portfolio_day_pl_sek": port_pl_sek,
+                "portfolio_day_pl_pct": port_pl_pct,
+                "equity_sek": equity_sek,
+                "alpha": alpha,
+                "badge_type": badge_type,
+                "badge_text": badge_text,
+                "badge_title": badge_title,
+                "top_gainer": top_gainer,
+                "top_loser": top_loser,
+                "analysis_title": analysis_title,
+                "analysis_text": analysis_text
+            }
+        except Exception as e:
+            logger.error(f"Error generating daily market report: {e}")
+            return {
+                "date": datetime.now(SWEDISH_TZ).strftime("%Y-%m-%d"),
+                "time": datetime.now(SWEDISH_TZ).strftime("%H:%M"),
+                "market_closed": True,
+                "session_label": "Börsen Stängd",
+                "spy": {"symbol": "SPY", "name": "S&P 500", "price": 0.0, "change_pct": 0.0},
+                "qqq": {"symbol": "QQQ", "name": "Nasdaq 100", "price": 0.0, "change_pct": 0.0},
+                "market_avg": 0.0,
+                "portfolio_day_pl_sek": 0.0,
+                "portfolio_day_pl_pct": 0.0,
+                "equity_sek": 0.0,
+                "alpha": 0.0,
+                "badge_type": "alpha-neutral",
+                "badge_text": "±0.00% mot index",
+                "badge_title": "FÖLJER MARKNADEN",
+                "analysis_title": "📊 Dagsrapport sammanställs",
+                "analysis_text": "Hämtar färsk marknadsdata vid nästa scanning..."
+            }
+
