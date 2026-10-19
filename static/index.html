@@ -182,6 +182,29 @@
             </div>
         </section>
 
+        <!-- Interactive Equity Curve / Performance Chart -->
+        <section class="equity-chart-card" id="equity-chart-card">
+            <div class="equity-chart-header">
+                <div class="equity-chart-title-wrap">
+                    <div class="chart-section-title">Portföljutveckling (Kapitalkurva)</div>
+                    <div class="chart-val-row">
+                        <span class="chart-main-val" id="chart-main-val">2 243,11 kr</span>
+                        <span class="chart-period-change positive" id="chart-period-change">+15,54 kr (+0.69%)</span>
+                    </div>
+                </div>
+                <div class="chart-period-selector" id="chart-period-selector">
+                    <button class="period-btn active" onclick="setChartPeriod('1D')" id="period-btn-1D">1D</button>
+                    <button class="period-btn" onclick="setChartPeriod('1W')" id="period-btn-1W">1V</button>
+                    <button class="period-btn" onclick="setChartPeriod('1M')" id="period-btn-1M">1M</button>
+                    <button class="period-btn" onclick="setChartPeriod('ALL')" id="period-btn-ALL">ALLT</button>
+                </div>
+            </div>
+            <div class="chart-canvas-container" id="chart-canvas-container">
+                <canvas id="equity-canvas"></canvas>
+                <div class="chart-tooltip" id="chart-tooltip" style="display: none;"></div>
+            </div>
+        </section>
+
         <!-- Main Workspace Tabs -->
         <nav class="main-tabs" id="main-tabs" aria-label="Main Navigation">
             <button class="tab-btn active" onclick="switchTab('dashboard')" id="tab-btn-dashboard">
@@ -190,11 +213,14 @@
             <button class="tab-btn" onclick="switchTab('positions')" id="tab-btn-positions">
                 <span>💼 Portfölj & Innehav (<span id="tab-pos-count">0</span>)</span>
             </button>
+            <button class="tab-btn" onclick="switchTab('journal')" id="tab-btn-journal">
+                <span>📖 Affärslogg (Klarspråk)</span>
+            </button>
             <button class="tab-btn" onclick="switchTab('backtest')" id="tab-btn-backtest">
                 <span>🧪 Strategi Backtest-Lab</span>
             </button>
             <button class="tab-btn" onclick="switchTab('orders')" id="tab-btn-orders">
-                <span>📜 Orderhistorik</span>
+                <span>📜 Rå Orderhistorik</span>
             </button>
         </nav>
 
@@ -285,6 +311,27 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: Affärslogg på Begriplig Svenska -->
+        <section class="tab-content" id="tab-journal">
+            <div class="panel journal-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">📖 Affärslogg & Beslutsmotivering</h2>
+                        <p class="panel-subtitle">Förklaringar på enkel vardagssvenska varför boten köpte eller sålde varje aktie.</p>
+                    </div>
+                    <div class="panel-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="fetchJournal()">
+                            <span>🔄 Uppdatera logg</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="journal-feed" id="journal-feed">
+                    <div class="journal-loading">Hämtar affärslogg...</div>
                 </div>
             </div>
         </section>

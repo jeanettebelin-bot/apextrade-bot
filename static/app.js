@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
     fetchPositions();
     fetchOrders();
     fetchMarketReport();
+    initEquityChart();
+    fetchPortfolioHistory("1D");
 
     // Start live polling every 3.5 seconds
     pollInterval = setInterval(() => {
@@ -27,6 +29,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setInterval(() => {
         fetchMarketReport();
     }, 25000);
+
+    // Refresh chart every 60 seconds
+    setInterval(() => {
+        fetchPortfolioHistory(currentChartPeriod);
+    }, 60000);
 });
 
 // --- Tab Switching ---
@@ -42,6 +49,7 @@ function switchTab(tabId) {
 
     if (tabId === "positions") fetchPositions();
     if (tabId === "orders") fetchOrders();
+    if (tabId === "journal") fetchJournal();
 }
 
 // --- Status & KPIs ---
@@ -882,4 +890,328 @@ async function sendReportToTelegram() {
         btn.innerHTML = "<span>📱 Skicka till Telegram</span>";
     }
 }
+
+// ============================================================================
+// --- INTERACTIVE EQUITY CURVE / PERFORMANCE GRAPH (Avanza / Robinhood Style)
+// ============================================================================
+let currentChartPeriod = '1D';
+let cachedChartData = null;
+let hoveredChartIndex = -1;
+
+function setChartPeriod(period) {
+    currentChartPeriod = period;
+    document.querySelectorAll(".period-btn").forEach(btn => btn.classList.remove("active"));
+    const activeBtn = document.getElementById(`period-btn-${period}`);
+    if (activeBtn) activeBtn.classList.add("active");
+    fetchPortfolioHistory(period);
+}
+
+async function fetchPortfolioHistory(period = '1D') {
+    try {
+        const res = await fetch(`/api/portfolio/history?period=${period}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        cachedChartData = data;
+        updateChartHeader(data);
+        renderEquityCanvas(data);
+    } catch (e) {
+        console.error("Error fetching portfolio history:", e);
+    }
+}
+
+function updateChartHeader(data, overrideIndex = -1) {
+    const mainVal = document.getElementById("chart-main-val");
+    const changeVal = document.getElementById("chart-period-change");
+    if (!mainVal || !changeVal || !data || !data.equity_series || data.equity_series.length === 0) return;
+
+    const series = data.equity_series;
+    const baseVal = series[0];
+    const currentVal = overrideIndex >= 0 && overrideIndex < series.length ? series[overrideIndex] : series[series.length - 1];
+
+    mainVal.textContent = `${currentVal.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr`;
+
+    const diff = currentVal - baseVal;
+    const pct = baseVal > 0 ? (diff / baseVal) * 100 : 0;
+    const sign = diff >= 0 ? "+" : "";
+    changeVal.className = `chart-period-change ${diff >= 0 ? 'positive' : 'negative'}`;
+    changeVal.textContent = `${sign}${diff.toFixed(2)} kr (${sign}${pct.toFixed(2)}%)`;
+}
+
+function initEquityChart() {
+    const container = document.getElementById("chart-canvas-container");
+    const canvas = document.getElementById("equity-canvas");
+    const tooltip = document.getElementById("chart-tooltip");
+    if (!container || !canvas) return;
+
+    window.addEventListener("resize", () => {
+        if (cachedChartData) renderEquityCanvas(cachedChartData, hoveredChartIndex);
+    });
+
+    const handlePointerMove = (clientX) => {
+        if (!cachedChartData || !cachedChartData.equity_series || cachedChartData.equity_series.length < 2) return;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = clientX - rect.left;
+        const padding = { left: 24, right: 30 };
+        const plotWidth = rect.width - padding.left - padding.right;
+
+        const ratio = Math.max(0, Math.min(1, (mouseX - padding.left) / plotWidth));
+        const idx = Math.min(cachedChartData.equity_series.length - 1, Math.max(0, Math.round(ratio * (cachedChartData.equity_series.length - 1))));
+
+        hoveredChartIndex = idx;
+        renderEquityCanvas(cachedChartData, idx);
+        updateChartHeader(cachedChartData, idx);
+
+        // Tooltip
+        if (tooltip) {
+            const series = cachedChartData.equity_series;
+            const labels = cachedChartData.labels || [];
+            const val = series[idx];
+            const baseVal = series[0];
+            const diff = val - baseVal;
+            const pct = baseVal > 0 ? (diff / baseVal) * 100 : 0;
+            const isPos = diff >= 0;
+            const valColor = isPos ? "#10b981" : "#f43f5e";
+            const sign = diff >= 0 ? "+" : "";
+
+            const timeLabel = labels[idx] || "";
+            tooltip.innerHTML = `
+                <div style="font-size: 11px; color: #94a3b8; font-weight: 600; margin-bottom: 2px;">🕒 ${timeLabel}</div>
+                <div style="font-size: 14px; font-weight: 800; color: ${valColor};">
+                    ${val.toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kr
+                </div>
+                <div style="font-size: 11px; color: ${valColor}; font-weight: 600; margin-top: 2px;">
+                    ${sign}${diff.toFixed(2)} kr (${sign}${pct.toFixed(2)}%)
+                </div>
+            `;
+
+            tooltip.style.display = "block";
+            const tooltipX = Math.max(50, Math.min(rect.width - 50, padding.left + ratio * plotWidth));
+            tooltip.style.left = `${tooltipX}px`;
+            tooltip.style.top = "30px";
+        }
+    };
+
+    container.addEventListener("mousemove", (e) => handlePointerMove(e.clientX));
+    container.addEventListener("touchmove", (e) => {
+        if (e.touches && e.touches[0]) handlePointerMove(e.touches[0].clientX);
+    }, { passive: true });
+
+    const handlePointerLeave = () => {
+        hoveredChartIndex = -1;
+        if (tooltip) tooltip.style.display = "none";
+        if (cachedChartData) {
+            renderEquityCanvas(cachedChartData, -1);
+            updateChartHeader(cachedChartData, -1);
+        }
+    };
+
+    container.addEventListener("mouseleave", handlePointerLeave);
+    container.addEventListener("touchend", handlePointerLeave);
+}
+
+function renderEquityCanvas(data, activeIndex = -1) {
+    const container = document.getElementById("chart-canvas-container");
+    const canvas = document.getElementById("equity-canvas");
+    if (!container || !canvas || !data || !data.equity_series || data.equity_series.length === 0) return;
+
+    const rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+
+    const ctx = canvas.getContext("2d");
+    ctx.resetTransform();
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+    const padding = { top: 25, bottom: 25, left: 24, right: 30 };
+    const plotWidth = w - padding.left - padding.right;
+    const plotHeight = h - padding.top - padding.bottom;
+
+    const series = data.equity_series;
+    let minVal = Math.min(...series);
+    let maxVal = Math.max(...series);
+
+    // Give visual breathing room if flat
+    if (maxVal - minVal < 1.0) {
+        minVal -= 5;
+        maxVal += 5;
+    } else {
+        const span = maxVal - minVal;
+        minVal -= span * 0.08;
+        maxVal += span * 0.08;
+    }
+    const valRange = maxVal - minVal;
+
+    const points = series.map((val, i) => {
+        const x = padding.left + (series.length === 1 ? plotWidth / 2 : (i / (series.length - 1)) * plotWidth);
+        const y = padding.top + (1 - (val - minVal) / valRange) * plotHeight;
+        return { x, y, val };
+    });
+
+    const isPositive = (series[series.length - 1] - series[0]) >= 0;
+    const strokeColor = isPositive ? "#10b981" : "#f43f5e";
+    const gradientTop = isPositive ? "rgba(16, 185, 129, 0.28)" : "rgba(244, 63, 94, 0.28)";
+    const gradientBottom = isPositive ? "rgba(16, 185, 129, 0.0)" : "rgba(244, 63, 94, 0.0)";
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 1. Draw subtle horizontal gridlines & labels
+    const gridSteps = 3;
+    ctx.font = "10px 'JetBrains Mono', monospace";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+
+    for (let g = 0; g <= gridSteps; g++) {
+        const gridVal = minVal + (g / gridSteps) * valRange;
+        const gridY = padding.top + (1 - g / gridSteps) * plotHeight;
+
+        ctx.beginPath();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.setLineDash([4, 4]);
+        ctx.moveTo(padding.left, gridY);
+        ctx.lineTo(w - padding.right, gridY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "rgba(148, 163, 184, 0.4)";
+        ctx.fillText(`${gridVal.toFixed(0)} kr`, w - 4, gridY);
+    }
+
+    // 2. Draw Area Gradient
+    if (points.length > 1) {
+        const areaGrad = ctx.createLinearGradient(0, padding.top, 0, h - padding.bottom);
+        areaGrad.addColorStop(0, gradientTop);
+        areaGrad.addColorStop(1, gradientBottom);
+
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+        }
+        ctx.lineTo(points[points.length - 1].x, h - padding.bottom);
+        ctx.lineTo(points[0].x, h - padding.bottom);
+        ctx.closePath();
+        ctx.fillStyle = areaGrad;
+        ctx.fill();
+    }
+
+    // 3. Draw Glow Stroke Line
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.shadowColor = strokeColor;
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0; // reset
+
+    // 4. Draw Active Hover or Current End Point
+    const targetIdx = activeIndex >= 0 ? activeIndex : points.length - 1;
+    const targetPoint = points[targetIdx];
+
+    if (activeIndex >= 0) {
+        // Draw vertical crosshair guide
+        ctx.beginPath();
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+        ctx.moveTo(targetPoint.x, padding.top);
+        ctx.lineTo(targetPoint.x, h - padding.bottom);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+
+    if (targetPoint) {
+        // Glowing Halo Circle
+        ctx.beginPath();
+        ctx.arc(targetPoint.x, targetPoint.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = isPositive ? "rgba(16, 185, 129, 0.3)" : "rgba(244, 63, 94, 0.3)";
+        ctx.fill();
+
+        // Inner Sharp Dot
+        ctx.beginPath();
+        ctx.arc(targetPoint.x, targetPoint.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = strokeColor;
+        ctx.strokeStyle = "#0f172a";
+        ctx.lineWidth = 1.5;
+        ctx.fill();
+        ctx.stroke();
+    }
+}
+
+// ============================================================================
+// --- TRADE JOURNAL / AFFÄRSLOGG (Klarspråk)
+// ============================================================================
+async function fetchJournal() {
+    const feed = document.getElementById("journal-feed");
+    if (!feed) return;
+    try {
+        const res = await fetch("/api/journal");
+        if (!res.ok) return;
+        const data = await res.json();
+        const items = Array.isArray(data) ? data : (data.journal || []);
+        renderJournal(items);
+    } catch (e) {
+        console.error("Error fetching journal:", e);
+        if (feed) feed.innerHTML = `<div class="journal-loading">Kunde inte hämta affärsloggen just nu.</div>`;
+    }
+}
+
+function renderJournal(rawItems) {
+    const feed = document.getElementById("journal-feed");
+    if (!feed) return;
+
+    const items = Array.isArray(rawItems) ? rawItems : (rawItems && rawItems.journal ? rawItems.journal : []);
+
+    if (!items || items.length === 0) {
+        feed.innerHTML = `
+            <div class="journal-card">
+                <div class="journal-summary-row" style="color: var(--text-muted); text-align: center; padding: 24px;">
+                    🌱 Inga genomförda affärer i loggen än. Boten övervakar marknaden och köper/säljer automatiskt när rätt köp- eller säljsignaler uppstår!
+                </div>
+            </div>`;
+        return;
+    }
+
+    feed.innerHTML = items.map(item => {
+        const isBuy = item.side === "buy";
+        const cardClass = isBuy ? "buy-card" : "sell-card";
+        const badgeClass = item.badge_class || (isBuy ? "buy" : "sell");
+        const actionLabel = item.action_label || (isBuy ? "KÖPT" : "SÅLT");
+        const icon = item.icon || (isBuy ? "🛒" : "💰");
+        const company = item.company || item.symbol;
+        const totalSek = typeof item.total_sek === "number" ? item.total_sek.toFixed(1) : item.total_sek;
+        const timeLabel = item.time_label || "";
+        const explanation = item.explanation || "Genomförd enligt botens tekniska regelverk för trend och riskkontroll.";
+        const headline = item.headline || `${isBuy ? 'Köpte' : 'Sålde'} ${item.qty} st ${company} för ca ${totalSek} kr`;
+
+        return `
+            <div class="journal-card ${cardClass}">
+                <div class="journal-header">
+                    <div class="journal-badge-group">
+                        <span class="journal-badge ${badgeClass}">${icon} ${actionLabel}</span>
+                        <span class="journal-company">${company} <span style="color: var(--text-muted); font-size: 13px;">(${item.symbol})</span></span>
+                    </div>
+                    <span class="journal-time">🕒 ${timeLabel}</span>
+                </div>
+                <div class="journal-summary-row">
+                    ${headline}
+                </div>
+                <div class="journal-reason-quote">
+                    <strong>💡 Varför gjordes affären?</strong>
+                    ${explanation}
+                </div>
+            </div>
+        `;
+    }).join("");
+}
+
 

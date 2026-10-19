@@ -118,11 +118,20 @@ def get_advisor():
 def get_market_report():
     return bot.get_daily_market_report()
 
+@app.get("/api/portfolio/history")
+def get_portfolio_history(period: str = "1D"):
+    return bot.alpaca_client.get_portfolio_history(period=period)
+
+@app.get("/api/journal")
+def get_trade_journal():
+    return {"journal": bot.alpaca_client.get_trade_journal()}
+
 @app.post("/api/market-report/send-telegram")
 def send_market_report_telegram():
     report = bot.get_daily_market_report()
     bot.notifier.notify_daily_recap(report)
     return {"success": True, "message": "Kvällsrapporten har skickats till Telegram!"}
+
 
 
 @app.post("/api/bot/start")
