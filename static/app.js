@@ -1005,6 +1005,13 @@ function initEquityChart() {
         }
     };
 
+    if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+            if (cachedChartData) renderEquityCanvas(cachedChartData, hoveredChartIndex);
+        });
+        ro.observe(container);
+    }
+
     container.addEventListener("mouseleave", handlePointerLeave);
     container.addEventListener("touchend", handlePointerLeave);
 }
@@ -1014,8 +1021,11 @@ function renderEquityCanvas(data, activeIndex = -1) {
     const canvas = document.getElementById("equity-canvas");
     if (!container || !canvas || !data || !data.equity_series || data.equity_series.length === 0) return;
 
-    const rect = container.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
+    let rect = container.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+        setTimeout(() => renderEquityCanvas(data, activeIndex), 100);
+        return;
+    }
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = rect.width * dpr;
@@ -1031,7 +1041,10 @@ function renderEquityCanvas(data, activeIndex = -1) {
     const plotWidth = w - padding.left - padding.right;
     const plotHeight = h - padding.top - padding.bottom;
 
-    const series = data.equity_series;
+    let series = data.equity_series;
+    if (series.length === 1) {
+        series = [series[0], series[0]];
+    }
     let minVal = Math.min(...series);
     let maxVal = Math.max(...series);
 
