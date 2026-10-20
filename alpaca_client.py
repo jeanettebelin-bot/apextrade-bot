@@ -517,6 +517,15 @@ class AlpacaClient:
             "MSFT": "Microsoft",
             "NVDA": "Nvidia",
             "TSLA": "Tesla",
+            "GOOGL": "Alphabet (Google)",
+            "META": "Meta Platforms",
+            "AMD": "AMD",
+            "AVGO": "Broadcom",
+            "PLTR": "Palantir",
+            "COIN": "Coinbase",
+            "NFLX": "Netflix",
+            "TSM": "Taiwan Semi (TSMC)",
+            "JPM": "JPMorgan Chase",
             "SPY": "S&P 500 Index (SPY)",
             "QQQ": "Nasdaq 100 Index (QQQ)"
         }
@@ -526,11 +535,23 @@ class AlpacaClient:
             ("MSFT", "buy"): "Microsoft handlas över sitt 50-dagars medelvärde och visade stabilt uppåtmomentum. Boten klev på tåget för stabil och långsiktig riskspridning.",
             ("AAPL", "buy"): "Apple visade stark trend och köparna tog överhanden. Boten tog en balanserad position för att dra nytta av teknikjättens styrka.",
             ("TSLA", "buy"): "Tesla visade kortsiktigt utbrott uppåt. Boten köpte för att fånga det snabba kurslyftet med automatisk stop-loss i ryggen.",
+            ("NVDA", "buy"): "Nvidia visade extremt momentum i AI-sektorn och passerade glidande medelvärden med hög handelsvolym.",
+            ("GOOGL", "buy"): "Alphabet (Google) etablerade ett tekniskt utbrott med stark relativ styrka mot marknaden.",
+            ("META", "buy"): "Meta Platforms uppvisade en stark köpsignal (EMA9 korsade över EMA21) med växande köparintresse.",
+            ("AMD", "buy"): "AMD bröt ut ur en konsolideringsfas och genererade en tydlig trendföljande köpsignal.",
+            ("AVGO", "buy"): "Broadcom visade institutionellt inflöde och stabil uppåtgående trendkanal.",
+            ("PLTR", "buy"): "Palantir visade aggressivt uppåtmomentum och högt RSI-stöd för en snabb vinstresa.",
+            ("COIN", "buy"): "Coinbase rusade i takt med krypto-sentimentet och gav en tydlig utbrottssignal för momentum-strategin.",
+            ("NFLX", "buy"): "Netflix handlades starkt på ökad volym och passerade viktiga motståndsnivåer.",
+            ("TSM", "buy"): "Halvledarledaren TSMC visade stabil uppåtgående trend och defensiv kvalitet för portföljen.",
+            ("JPM", "buy"): "JPMorgan visade finansiell styrka och stabil trend som balanserar tekniksektorn i portföljen.",
             ("SPY", "buy"): "Det breda amerikanska S&P 500-indexet visade positiv trend. Boten köpte in en andel för att bygga en stabil och defensiv bas.",
             ("QQQ", "buy"): "Tekniktunga Nasdaq 100 visade starkt inflöde. Boten tog rygg på teknikrallyt med kontrollerad risk.",
             ("MSFT", "sell"): "Affären avslutades och vinsten/likviden säkrades tillbaka till kassan för nya köpmöjligheter.",
             ("TSLA", "sell"): "Positionen stängdes för att låsa in kapital och skydda portföljen mot tillfälliga svängningar.",
-            ("AMZN", "sell"): "Innehavet såldes och pengarna återfördes till kassan för att omallokeras till nya heta signaler."
+            ("AMZN", "sell"): "Innehavet såldes och pengarna återfördes till kassan för att omallokeras till nya heta signaler.",
+            ("NVDA", "sell"): "Nvidia-positionen stängdes för att säkra vinsten vid uppnått vinstmål.",
+            ("META", "sell"): "Vinsten säkrades i Meta och likviden frigjordes för nya signaler."
         }
 
         for o in raw_orders:

@@ -14,19 +14,19 @@ DEFAULT_CONFIG = {
     "alpaca_secret_key": "",
     "alpaca_base_url": "https://api.alpaca.markets",
     "alpaca_data_url": "https://data.alpaca.markets/v2",
-    "watchlist": ["AAPL", "MSFT", "NVDA", "TSLA", "SPY", "QQQ", "AMZN"],
+    "watchlist": ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "AMD", "AVGO", "PLTR", "COIN", "NFLX", "TSM", "JPM", "SPY", "QQQ"],
     "strategy": "trend_momentum",  # "trend_momentum", "rsi_reversion", "breakout"
     "scan_interval_seconds": 60,
     "profit_harvest_pct": 10.0,    # 10% av vinsterna reserveras för vinstskörd (90% snöboll)
     "telegram_bot_token": "",
     "telegram_chat_id": "",
     "risk": {
-        "max_position_pct": 25.0,       # 25 kr per position vid 100 kr startkapital
-        "stop_loss_pct": 2.5,           # Hard exit vid -2.5% (ca -0.62 kr per 25 kr-post)
-        "take_profit_pct": 5.0,         # Vinstmål vid +5.0% (ca +1.25 kr per 25 kr-post)
+        "max_position_pct": 15.0,       # Ca 330 kr per position vid 2 200 kr
+        "stop_loss_pct": 2.5,           # Hard exit vid -2.5%
+        "take_profit_pct": 4.0,         # Vinstmål vid +4.0%
         "trailing_stop_pct": 1.5,       # Trailing stop
-        "max_open_positions": 7,        # Max 7 poster samtidigt (hela bevakningslistan)
-        "max_daily_loss_pct": 3.0,      # Circuit breaker: pausa om dagsförlusten når -3.00 kr
+        "max_open_positions": 12,       # Max 12 poster samtidigt
+        "max_daily_loss_pct": 3.0,      # Circuit breaker
         "allow_fractional": True        # Fraktionshandel krävs för mikrobelopp
     }
 }
