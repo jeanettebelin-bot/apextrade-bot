@@ -34,6 +34,8 @@ class BotEngine:
         self.current_prices: Dict[str, float] = {}
         self._last_notified_streak = 0
         self._last_notified_dip = False
+        self._last_dip_notification_time = 0.0
+        self._last_streak_notification_time = 0.0
 
         self.add_log("INFO", "Tradingbot initierad i " + self.config.get("mode", "simulation").upper() + "-läge")
 
@@ -259,16 +261,21 @@ class BotEngine:
             action_type = "normal"
             recommendation = "Marknaden rör sig normalt. Nästa steg: Planera en månatlig insättning på 500 kr vid löning."
 
-        # Send Telegram notification on new state transition
-        if is_market_dip and not self._last_notified_dip:
-            self._last_notified_dip = True
-            self.notifier.notify_dip_alert(oversold_symbols, recommendation)
-        elif not is_market_dip:
+        # Send Telegram notification on new state transition with strict 8h cooldown
+        now = time.time()
+        if is_market_dip:
+            if not self._last_notified_dip and (now - self._last_dip_notification_time > 8 * 3600):
+                self._last_dip_notification_time = now
+                self._last_notified_dip = True
+                self.notifier.notify_dip_alert(oversold_symbols, recommendation)
+        else:
             self._last_notified_dip = False
 
-        if is_winning_streak and consecutive_wins > self._last_notified_streak and consecutive_wins >= 3:
-            self._last_notified_streak = consecutive_wins
-            self.notifier.notify_streak_alert(consecutive_wins, recommendation)
+        if is_winning_streak and consecutive_wins >= 3:
+            if consecutive_wins > self._last_notified_streak and (now - self._last_streak_notification_time > 8 * 3600):
+                self._last_streak_notification_time = now
+                self._last_notified_streak = consecutive_wins
+                self.notifier.notify_streak_alert(consecutive_wins, recommendation)
 
         total_profit_sek = sum([float(t.get("pl", 0.0)) for t in closed if float(t.get("pl", 0.0)) > 0])
         harvest_pct = float(self.config.get("profit_harvest_pct", 10.0))
